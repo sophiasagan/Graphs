@@ -28,6 +28,8 @@ class SocialGraph:
         """
         Creates a bi-directional friendship
         """
+        self.count_add_friend += 1
+
         if user_id == friend_id:
             print("WARNING: You cannot be friends with yourself")
         elif friend_id in self.friendships[user_id] or user_id in self.friendships[friend_id]:
@@ -46,8 +48,9 @@ class SocialGraph:
 
     def reset(self):
         self.last_id = 0
-        self.users = {}
-        self.friendships = {}
+        self.users = {} # nodes
+        self.friendships = {} # edges
+        self.count_add_friend = 0
 
     def populate_graph(self, num_users, avg_friendships):
         """
@@ -138,7 +141,40 @@ class SocialGraph:
 
 if __name__ == '__main__':
     sg = SocialGraph()
-    sg.populate_graph(10, 2)
-    print(sg.friendships)
+    sg.populate_graph(1000, 5)
+    # print(sg.count_add_friend)
+    # print(sg.friendships)
     connections = sg.get_all_social_paths(1)
-    print(connections)
+    # print(connections)
+
+
+# calculate percentage of other users in a particular user's extended social network
+
+
+def extended_network(graph, network, num_users):
+    count = 0
+    for user in graph.users:
+        if user in network.keys():
+            count += 1
+    percentage = (count / num_users) * 100
+    return percentage
+
+
+print(extended_network(sg, connections, 1000)) 
+
+
+def avg_separation(graph, network):
+    degrees = 0
+    friend_count = 0
+    # degree of separation
+    for user in network:
+        # add degree of separation
+        degrees += len(network[user])
+        # add to count
+        friend_count += 1
+    # total degrees of separation divided by user connections
+    average = degrees / friend_count
+    return round(average, 2)
+
+
+print(avg_separation(sg, connections))
