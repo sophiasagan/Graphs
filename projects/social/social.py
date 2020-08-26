@@ -1,17 +1,35 @@
+import random
+
+class Queue():
+    def __init__(self):
+        self.queue = []
+    def enqueue(self, value):
+        self.queue.append(value)
+    def dequeue(self):
+        if self.size() > 0:
+            return self.queue.pop(0)
+        else:
+            return None
+    def size(self):
+        return len(self.queue)
+
 class User:
     def __init__(self, name):
         self.name = name
 
+    def __repr__(self):
+        return f'User({repr(self.name)})'
+
 class SocialGraph:
     def __init__(self):
-        self.last_id = 0
-        self.users = {}
-        self.friendships = {}
+        self.reset()
 
     def add_friendship(self, user_id, friend_id):
         """
         Creates a bi-directional friendship
         """
+        self.count_add_friend += 1
+
         if user_id == friend_id:
             print("WARNING: You cannot be friends with yourself")
         elif friend_id in self.friendships[user_id] or user_id in self.friendships[friend_id]:
@@ -28,6 +46,12 @@ class SocialGraph:
         self.users[self.last_id] = User(name)
         self.friendships[self.last_id] = set()
 
+    def reset(self):
+        self.last_id = 0
+        self.users = {} # nodes
+        self.friendships = {} # edges
+        self.count_add_friend = 0
+
     def populate_graph(self, num_users, avg_friendships):
         """
         Takes a number of users and an average number of friendships
@@ -39,15 +63,62 @@ class SocialGraph:
         The number of users must be greater than the average number of friendships.
         """
         # Reset graph
-        self.last_id = 0
-        self.users = {}
-        self.friendships = {}
+        self.reset
         # !!!! IMPLEMENT ME
-
         # Add users
+        for i in range(0, num_users):
+            self.add_user(f"User {i + 1}")
 
         # Create friendships
-
+        # Generate ALL possible friendships
+        # Avoid duplicate friendships 
+        possible_friendships = []
+        
+        for user_id in self.users:
+            for friend_id in range(user_id + 1, self.last_id + 1):
+                # user_id == user_id_2 cannot happen
+                # if friendship between user_id and user_id_2 already exists
+                #   dont add friendship between user_id_2 and user_id
+                possible_friendships.append( (user_id, friend_id) )
+            
+        # Randomly select X friendships
+        # the formula for X is  num_users * avg_friendships  // 2 
+        # shuffle the array and pick X elements from the front of it
+        random.shuffle(possible_friendships)
+        
+        num_friendships = num_users * avg_friendships // 2
+        for i in range(num_friendships):
+            friendship = possible_friendships[i]
+            self.add_friendship(friendship[0], friendship[1])
+    
+    def bfs(self, starting_friend, destination_friend):
+        # set up a queue
+        q = Queue()
+        # enqueue starting path
+        q.enqueue([starting_friend])
+        # init visited as set
+        visited = set()
+        # while the queue is not empty
+        while q.size() > 0:
+            # get first path from queue
+            path = q.dequeue()
+            # if path not visited
+            if path[-1] not in visited:
+                # check if target
+                if path[-1] == destination_friend:
+                    # if so return
+                    return path
+                # mark as visited
+                visited.add(path[-1])
+                # then add path to neighbors
+                for friend in self.friendships[path[-1]]:
+                    # copy path
+                    new_path = list(path)
+                    # append neighbor to the back
+                    new_path.append(friend)
+                    q.enqueue(new_path)
+        
+        
     def get_all_social_paths(self, user_id):
         """
         Takes a user's user_id as an argument
@@ -59,12 +130,51 @@ class SocialGraph:
         """
         visited = {}  # Note that this is a dictionary, not a set
         # !!!! IMPLEMENT ME
+        for user in self.users:
+            path = self.bfs(user_id, user)
+
+            if path:
+                visited[user] = path
+
         return visited
 
 
 if __name__ == '__main__':
     sg = SocialGraph()
-    sg.populate_graph(10, 2)
-    print(sg.friendships)
+    sg.populate_graph(1000, 5)
+    # print(sg.count_add_friend)
+    # print(sg.friendships)
     connections = sg.get_all_social_paths(1)
-    print(connections)
+    # print(connections)
+
+
+# calculate percentage of other users in a particular user's extended social network
+
+
+def extended_network(graph, network, num_users):
+    count = 0
+    for user in graph.users:
+        if user in network.keys():
+            count += 1
+    percentage = (count / num_users) * 100
+    return percentage
+
+
+print(extended_network(sg, connections, 1000)) 
+
+
+def avg_separation(graph, network):
+    degrees = 0
+    friend_count = 0
+    # degree of separation
+    for user in network:
+        # add degree of separation
+        degrees += len(network[user])
+        # add to count
+        friend_count += 1
+    # total degrees of separation divided by user connections
+    average = degrees / friend_count
+    return round(average, 2)
+
+
+print(avg_separation(sg, connections))
